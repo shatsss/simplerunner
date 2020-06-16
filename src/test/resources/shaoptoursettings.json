@@ -1,0 +1,42 @@
+{"SHAOPSettings": {
+	"participants": [
+		{
+			"shaop": {
+				"party": {
+					"partyref": "classpath:myparty.shaop.ShaopParty",
+					"parameters": {}
+				},
+				"profile": "file:src/test/resources/jobs/jobs1partial.json"
+			},
+			"cob": {
+				"party": {
+					"partyref": "classpath:myparty.shaop.CompareBids",
+					"parameters": {}
+				},
+				"profile": "file:src/test/resources/jobs/jobs1.json"
+			}
+		},
+		{
+			"shaop": {
+				"party": {
+					"partyref": "classpath:myparty.randomparty.RandomParty",
+					"parameters": {}
+				},
+				"profile": "file:src/test/resources/jobs/jobs1partial.json"
+			},
+			"cob": {
+				"party": {
+					"partyref": "classpath:myparty.shaop.CompareBids",
+					"parameters": {}
+				},
+				"profile": "file:src/test/resources/jobs/jobs1.json"
+			}
+		}
+	],
+	"deadline": {
+		"deadlinerounds": {
+			"rounds": 3000,
+			"durationms": 1000000
+		}
+	}
+}}

@@ -1,0 +1,16 @@
+{
+	"SAOPSettings": {
+		"participants": [{
+			"party": {"partyref":"classpath:myparty.agentgg.agentgg", "parameters":{}},
+			"profile": "file:src/test/resources/jobs/jobs1partial.json"
+		}, {
+			"party": {"partyref":"classpath:myparty.agentgg.agentgg", "parameters":{}},
+			"profile": "file:src/test/resources/jobs/jobs1partial.json"
+		}],
+		"deadline": {
+			"deadlinetime": {
+				 "durationms":10000
+			}
+		}
+	}
+}
