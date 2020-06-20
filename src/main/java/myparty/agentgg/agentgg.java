@@ -7,7 +7,6 @@ import geniusweb.issuevalue.Value;
 import geniusweb.party.Capabilities;
 import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
-import geniusweb.profile.DefaultPartialOrdering;
 import geniusweb.profile.PartialOrdering;
 import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
@@ -21,10 +20,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.IntStream;
 
 import static java.lang.Math.max;
-import static java.util.stream.Collectors.toList;
 
 /**
  * Translated version of Genius ANAC 2019 AgentGG originally written by Shaobo
@@ -80,6 +77,17 @@ public class agentgg extends DefaultParty {
                 init((Settings) info);
             } else if (info instanceof ActionDone) {
                 lastReceivedAction = ((ActionDone) info).getAction();
+                if (lastReceivedAction instanceof Comparison) {
+                    estimatedProfile = estimatedProfile.with(
+                            ((Comparison) lastReceivedAction).getBid(),
+                            ((Comparison) lastReceivedAction).getWorse());
+                    this.impMap.self_update(estimatedProfile.getBids());
+                    Action action = chooseAction();
+                    getConnection().send(action);
+                    if (progress instanceof ProgressRounds) {
+                        progress = ((ProgressRounds) progress).advance();
+                    }
+                }
                 if (lastReceivedAction instanceof Offer) {
                     this.receivedBid = ((Offer) lastReceivedAction).getBid();
                 }
@@ -213,12 +221,6 @@ public class agentgg extends DefaultParty {
                 "estimated nash: " + this.estimatedNashPoint);
         getReporter().log(Level.INFO,
                 "reservation: " + this.reservationImportanceRatio);
-        DefaultPartialOrdering prof;
-        try {
-            prof = (DefaultPartialOrdering) profileint.getProfile();
-        } catch (IOException e) {
-            throw new RuntimeException(" bad conversion of profile");
-        }
         Action action = null;
         if (estimatedProfile == null) {
             try {
@@ -228,6 +230,14 @@ public class agentgg extends DefaultParty {
                 e.printStackTrace();
             }
         }
+
+
+//        Bid bid = getNeededRandomBid(this.offerLowerRatio,
+//                this.offerHigherRatio);
+//        this.lastReceivedBid = this.receivedBid;
+//        return new Offer(me, bid);
+
+
         if (lastReceivedBid != null) {
             // then we do the action now, no need to ask user
             if (estimatedProfile.contains(lastReceivedBid)) {
@@ -235,12 +245,8 @@ public class agentgg extends DefaultParty {
                     action = new Accept(me, lastReceivedBid);
                 }
             } else {
-                // we did not yet assess the received bid
                 try {
-//                    List<Offer> bids = IntStream.range(0, 10).mapToObj(i -> randomBid()).collect(toList());
-//                    bids.forEach(bid -> new ElicitComparison(me, bid.getBid(),
-//                            estimatedProfile.getBids()));
-                    action= new ElicitComparison(me,lastReceivedBid,
+                    action = new ElicitComparison(me, lastReceivedBid,
                             estimatedProfile.getBids());
                 } catch (Exception e) {
                     System.out.println("bad");
@@ -441,25 +447,6 @@ public class agentgg extends DefaultParty {
         if (median2 != -1)
             this.MEDIAN_IMPORTANCE /= 2;
     }
-
-//    /**
-//     * 更新对手的最大及最小Importance的值及对应OFFER
-//     */
-//    private void getOpponentMaxAndMinBid() {
-//        HashMap<Integer, Value> lValues1 = new HashMap<>();
-//        HashMap<Integer, Value> lValues2 = new HashMap<>();
-//        for (Map.Entry<Issue, List<impUnit>> entry : this.opponentImpMap.entrySet()) {
-//            Value value1 = entry.getValue().get(0).valueOfIssue;
-//            Value value2 = entry.getValue().get(entry.getValue().size() - 1).valueOfIssue;
-//            int issueNumber = entry.getKey().getNumber();
-//            lValues1.put(issueNumber, value1);
-//            lValues2.put(issueNumber, value2);
-//        }
-//        Bid OPPONENT_MAX_IMPORTANCE_BID = new Bid(this.getDomain(), lValues1);
-//        Bid OPPONENT_MIN_IMPORTANCE_BID = new Bid(this.getDomain(), lValues2);
-//        this.OPPONENT_MAX_IMPORTANCE = this.opponentImpMap.getImportance(OPPONENT_MAX_IMPORTANCE_BID);
-//        this.OPPONENT_MIN_IMPORTANCE = this.opponentImpMap.getImportance(OPPONENT_MIN_IMPORTANCE_BID);
-//    }
 
     /**
      * Get eligible random bids. Generate k bids randomly, select bids within
