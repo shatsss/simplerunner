@@ -20,7 +20,7 @@
       {
         "shaop": {
           "party": {
-            "partyref": "classpath:myparty.shaop.ShaopParty",
+            "partyref": "classpath:myparty.agentgg.agentgg",
             "parameters": {
             }
           },

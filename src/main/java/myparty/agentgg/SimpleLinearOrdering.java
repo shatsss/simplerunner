@@ -56,36 +56,14 @@ public class SimpleLinearOrdering implements UtilitySpace {
     @Override
     public BigDecimal getUtility(Bid bid) {
         if (bids.size() < 2 || !bids.contains(bid)) {
-            Set<Bid> nearestNeighbors = getNearestNeighborsOfPoint(bids, bid, 1);
-            bid = nearestNeighbors.iterator().next();
-//            return BigDecimal.ZERO; //TODO :change this shit
+            return BigDecimal.ZERO;
         }
         // using 8 decimals, we have to pick something here
         return new BigDecimal(bids.indexOf(bid)).divide(
                 new BigDecimal((bids.size() - 1)), 8, RoundingMode.HALF_UP);
     }
 
-    private static Set<Bid> getNearestNeighborsOfPoint(List<Bid> neighbors, Bid bid, int numberOfNeighbors) {
-        return neighbors.stream()
-                .filter(neighbor -> !bid.equals(neighbor))
-                .sorted(comparing(neighbor -> calcDistanceBetweenBids(bid, neighbor)))
-                .limit(numberOfNeighbors)
-                .collect(toSet());
-    }
 
-    private static double calcDistanceBetweenBids(Bid bid1, Bid bid2) {
-        return bid1.getIssues().stream()
-                .mapToDouble(issue -> calcDistanceBetweenValues(bid1.getValue(issue), bid2.getValue(issue)))
-                .sum();
-    }
-
-    private static double calcDistanceBetweenValues(Value value1, Value value2) {
-        if (value1 instanceof NumberValue && value2 instanceof NumberValue)
-            return Math.abs(((NumberValue) value1).getValue().doubleValue() - ((NumberValue) value2).getValue().doubleValue());
-        else if (value1 instanceof DiscreteValue && value2 instanceof DiscreteValue)
-            return ((DiscreteValue) value1).getValue().equals(((DiscreteValue) value2).getValue()) ? 0 : 1;
-        return DEFAULT_VALUE;
-    }
 
     /**
      * @param bid
