@@ -1,16 +1,15 @@
 package myparty.agentgg;
 
-import geniusweb.issuevalue.*;
+import geniusweb.issuevalue.Bid;
+import geniusweb.issuevalue.Domain;
 import geniusweb.profile.DefaultPartialOrdering;
 import geniusweb.profile.Profile;
 import geniusweb.profile.utilityspace.UtilitySpace;
+import myparty.agentgg.searchalgorithms.SearchSpaceBid;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * A simple list of bids, but all bids are fully ordered (better or worse than
@@ -56,13 +55,17 @@ public class SimpleLinearOrdering implements UtilitySpace {
     @Override
     public BigDecimal getUtility(Bid bid) {
         if (bids.size() < 2 || !bids.contains(bid)) {
-            return BigDecimal.ZERO;
+            Set<Bid> neighbors = new SearchSpaceBid(bids, 2).getNeighbors(bid);
+            return BigDecimal.valueOf(neighbors.stream().mapToDouble(neighbor -> score(neighbor)).average().orElse(0));
         }
         // using 8 decimals, we have to pick something here
-        return new BigDecimal(bids.indexOf(bid)).divide(
-                new BigDecimal((bids.size() - 1)), 8, RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(score(bid));
     }
 
+    private double score(Bid bid) {
+        return new BigDecimal(bids.indexOf(bid)).divide(
+                new BigDecimal((bids.size() - 1)), 8, RoundingMode.HALF_UP).doubleValue();
+    }
 
 
     /**

@@ -23,19 +23,14 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 
+import static geniusweb.protocol.session.shaop.SHAOPState.DEFAULT_ELICITATATION_COST;
 import static java.lang.Math.max;
 import static java.util.stream.Collectors.toList;
 
-/**
- * Translated version of Genius ANAC 2019 AgentGG originally written by Shaobo
- * Xu and Peihao Ren of University of Southampton. This party requires a partial
- * ordering as input (notice that most profiles are also partial ordering
- * anyway).
- */
 public class agentgg extends DefaultParty {
+    public static double probToElicitation = 1.0;
     private SimpleLinearOrdering estimatedProfile = null;
     private SimulatedAnnealing simulatedAnnealing;
-    private SearchSpaceBid searchSpaceBid;
     private ImpMap impMap;
     private ImpMap opponentImpMap;
     private double offerLowerRatio = 1.0;
@@ -137,6 +132,14 @@ public class agentgg extends DefaultParty {
         allbids = new AllBidsList(partialprofile.getDomain());
 
         // Create empty my import map
+        if (estimatedProfile == null) {
+            try {
+                estimatedProfile = new SimpleLinearOrdering(
+                        profileint.getProfile());
+            } catch (IOException e) {
+                System.out.println(e);
+            }
+        }
         this.impMap = new ImpMap(partialprofile);
         // and opponent's value map. CHECK why is the opponent map not initially
         // empty?
@@ -225,23 +228,33 @@ public class agentgg extends DefaultParty {
                 "estimated nash: " + this.estimatedNashPoint);
         getReporter().log(Level.INFO,
                 "reservation: " + this.reservationImportanceRatio);
-        if (estimatedProfile == null) {
+
+
+        if (shouldCallElicitation(time)) {
             try {
-                estimatedProfile = new SimpleLinearOrdering(
-                        profileint.getProfile());
+                if (this.lastReceivedBid != null)
+                    getConnection().send(new ElicitComparison(me, lastReceivedBid,
+                            estimatedProfile.getBids()));
             } catch (IOException e) {
-                System.out.println(e);
+                e.printStackTrace();
             }
         }
 
 
-        Bid bid = getNeededRandomBid(this.offerLowerRatio,
+        Bid bid = getOptimizeBid(this.offerLowerRatio,
                 this.offerHigherRatio);
         this.lastReceivedBid = this.receivedBid;
         return new Offer(me, bid);
 
         //TODO: simulated annealing with CompareBids class
 
+    }
+
+    private boolean shouldCallElicitation(double time) {
+        if (rand.nextDouble() < Math.exp(-DEFAULT_ELICITATATION_COST)) {
+            return rand.nextDouble() < Math.exp(-time);
+        }
+        return false;
     }
 
     /**
@@ -408,16 +421,7 @@ public class agentgg extends DefaultParty {
             this.MEDIAN_IMPORTANCE /= 2;
     }
 
-    /**
-     * Get eligible random bids. Generate k bids randomly, select bids within
-     * the threshold range, and return the bid with the highest opponent import.
-     *
-     * @param lowerRatio Generate a lower limit for the random bid
-     * @param upperRatio Generate random bid upper limit
-     * @return Bid
-     * @throws IOException
-     */
-    private Bid getNeededRandomBid(double lowerRatio, double upperRatio) {
+    private Bid getOptimizeBid(double lowerRatio, double upperRatio) {
 
         final long k = 2 * this.allbids.size().longValue();
         double lowerThreshold = lowerRatio
@@ -431,14 +435,13 @@ public class agentgg extends DefaultParty {
             double highest_opponent_importance = 0.0;
             Bid returnedBid = null;
             for (int i = 0; i < k; i++) {
-                Bid bid = searchBestBid(lowerThreshold);
+                Bid bid = generateRandomBid();
                 double bidImportance = this.impMap.getImportance(bid);
                 double bidOpponentImportance = this.opponentImpMap
                         .getImportance(bid);
                 if (bidImportance >= lowerThreshold
                         && bidImportance <= upperThreshold) {
                     if (this.offerRandomly) {
-                        //TODO: simulated annealing with CompareBids class
                         return bid; // Randomly bid for the first 0.2 time
                     }
                     if (bidOpponentImportance > highest_opponent_importance) {
@@ -463,13 +466,18 @@ public class agentgg extends DefaultParty {
 
     private Bid searchBestBid(double lowerThreshold) {
         return simulatedAnnealing.search(new FitnessBid(this.estimatedProfile),
-                new SearchSpaceBid(getBids(), 3), impMap, allbids, lowerThreshold);
+                new SearchSpaceBid(getBids(), 5), impMap, allbids, lowerThreshold);
     }
 
     private List<Bid> getBids() {
         return IntStream.range(0, allbids.size().intValue())
                 .mapToObj(i -> allbids.get(i))
                 .collect(toList());
+    }
+
+
+    private Bid generateRandomBid() {
+        return allbids.get(rand.nextInt(allbids.size().intValue()));
     }
 
 }

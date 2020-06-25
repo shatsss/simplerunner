@@ -1,14 +1,20 @@
 package myparty.agentgg;
 
+import geniusweb.bidspace.AllBidsList;
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;
 import geniusweb.issuevalue.ValueSet;
 import geniusweb.profile.PartialOrdering;
+import myparty.agentgg.searchalgorithms.SearchSpaceBid;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Importance map. One is created for each party. The key (String) is the issue
@@ -17,12 +23,15 @@ import java.util.List;
  */
 @SuppressWarnings("serial")
 public class ImpMap extends HashMap<String, List<impUnit>> {
+	private final AllBidsList allbids;
 	private Domain domain;
 
 	// importance map
 	public ImpMap(PartialOrdering profile) {
 		super();
+		this.allbids = new AllBidsList(profile.getDomain());
 		this.domain = profile.getDomain();
+
 		// Create empty my import map and opponent's value map
 		for (String issue : domain.getIssues()) {
 			ValueSet values = domain.getValues(issue);
@@ -37,7 +46,7 @@ public class ImpMap extends HashMap<String, List<impUnit>> {
 	/**
 	 * Update opponent map. Increases the meanWeightSum of the values of this
 	 * bid.
-	 * 
+	 *
 	 * @param receivedOfferBid tbe received opponent bid.
 	 */
 	public void opponent_update(Bid receivedOfferBid) {
@@ -60,7 +69,7 @@ public class ImpMap extends HashMap<String, List<impUnit>> {
 	/**
 	 * Update your own importance map Traverse the known bidOrder and update the
 	 * "weight sum" and "number of times" in the import table.
-	 * 
+	 *
 	 * @param bids a list of ordered bids, worst bid first, best bid last
 	 */
 	public void self_update(List<Bid> bidOrdering) {
